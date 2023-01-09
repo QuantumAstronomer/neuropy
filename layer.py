@@ -31,7 +31,7 @@ import numpy as np
 import numpy.typing as npt
 
 from typing import Protocol, runtime_checkable
-from activation import ActivationFunction
+from .activation import ActivationFunction
 
 
 @runtime_checkable

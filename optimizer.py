@@ -15,8 +15,8 @@ class Optimizer(Protocol):
 import numpy as np
 
 from typing import Protocol
-from layer import TrainableLayer
-from learningrate import DecayFunction, NoDecay
+from .layer import TrainableLayer
+from .learningrate import DecayFunction, NoDecay
 
 
 class Optimizer(Protocol):
