@@ -1,3 +1,16 @@
+'''
+A decaying learning rate increases the stability of training a neural network, especially when
+approaching the optimum performance where big jumps are not desirable. Each decay function
+is enclosed in a DecayFunction protocol:
+
+class DecayFunction(Protocol):
+
+    learning_rate: float
+
+    def calculate(self, iteration: int) -> float:
+        ...
+'''
+
 import numpy as np
 from typing import Protocol
 

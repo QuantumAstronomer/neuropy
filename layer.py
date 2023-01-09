@@ -18,15 +18,14 @@ class Layer(Protocol):
     def backward(self, grad_output: npt.NDArray[np.float64]):
         ...
 
-    def update_parameters(self, learning_rate: float):
-        ...
 
 This indicates that EVERY layer needs a forward and backward propagation, respectively, in order to be able
-to train the neural network. Anything else is optional. Furthermore, we declare a protocol class for the
-ActivationFunction which is needed for the activation layer.
+to train the neural network. Anything else is optional. The Trainable Layer is a subclass of Layer that has
+some extra properties from its internal trainable parameters like the weights and biases themselves, as well
+as the updates to these parameters and possible momentum terms for the optimizers to use.
 '''
 
-## TO DO: Implement regularization on the FullyConnected layer.
+## TODO: Implement Convolution and Flattening layers.
 
 import numpy as np
 import numpy.typing as npt

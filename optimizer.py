@@ -1,8 +1,21 @@
+'''
+Implementing the optimizer methods like Gradient Descent and Root Mean Squared Propagation. These
+are all methods to train a neural network, each having different desirable properties.
+The protocol that ALL optimizers should follow is:
+
+class Optimizer(Protocol):
+
+    def update_parameters(self, layer: TrainableLayer):
+        ...
+
+    def post_update(self):
+        ...
+'''
+
 import numpy as np
-import numpy.typing as npt
 
 from typing import Protocol
-from layer import Layer, TrainableLayer
+from layer import TrainableLayer
 from learningrate import DecayFunction, NoDecay
 
 

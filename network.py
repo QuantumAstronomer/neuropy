@@ -1,11 +1,14 @@
 import numpy as np
 import numpy.typing as npt
 
-from layer import Layer, InputLayer, TrainableLayer, FullyConnected
+from layer import Layer, InputLayer, TrainableLayer
 from optimizer import Optimizer
 from lossfunction import LossFunction
 
 from typing import Optional
+
+## TODO: Implement batch training
+## TODO: Implement network visualization
 
 
 class Network():

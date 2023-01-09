@@ -119,7 +119,7 @@ class PseudoHuber:
 class GeneralizedHuber:
     '''
     Generalized Huber loss function, also called a Smooth Robust loss function, as defined by Gokcesu and Gokcesu 2021
-    (url: https://ui.adsabs.harvard.edu/link_gateway/2021arXiv210812627G/arXiv:2108.12627). The Generalized Huber loss 
+    (url: https://arxiv.org/abs/2108.12627). The Generalized Huber loss 
     function improves upon the Huber and Pseudo-Huber functions be guaranteeing convexity over the whole domain.
 
     Again, the Generalized Huber loss function requires an initializer method as there are two parameters, 'a' and 'b',
