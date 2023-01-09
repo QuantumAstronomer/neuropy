@@ -69,6 +69,9 @@ class TrainableLayer(Layer, Protocol):
     momentum_weights: npt.NDArray[np.float64]
     momentum_biases: npt.NDArray[np.float64]
 
+    memory_weights: npt.NDArray[np.float64]
+    memory_biases: npt.NDArray[np.float64]
+
 
 
 
@@ -117,6 +120,9 @@ class FullyConnected(TrainableLayer):
 
         self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
         self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+
+        self.memory_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
+        self.memory_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
 
     def forward(self, input_data: npt.NDArray[np.float64]):
 
