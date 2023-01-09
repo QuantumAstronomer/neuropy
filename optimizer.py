@@ -30,7 +30,7 @@ class Optimizer(Protocol):
 
 class GradientDescent(Optimizer):
 
-    def __init__(self, learning_rate: DecayFunction= NoDecay(0.1), momentum: float = 0.):
+    def __init__(self, learning_rate: DecayFunction = NoDecay(0.1), momentum: float = 0.):
 
         self.learning_rate_function: DecayFunction = learning_rate
         self.learning_rate: float = self.learning_rate_function.learning_rate
@@ -56,6 +56,32 @@ class GradientDescent(Optimizer):
         layer.biases += biases_update
 
     def post_update(self):
+
+        self.iteration += 1
+        self.learning_rate = self.learning_rate_function.calculate(self.iteration)
+
+
+class NesterovGradientDescent(Optimizer):
+
+    def __init__(self, learning_rate: DecayFunction = NoDecay(0.1), momentum: float = .9):
+        self.learning_rate_function: DecayFunction = learning_rate
+        self.learning_rate: float = self.learning_rate_function.learning_rate
+
+        self.momentum: float = momentum
+
+        self.iteration: int = 0
+
+    def update_parameters(self, layer: TrainableLayer):
+
+
+        layer.momentum_weights = - self.learning_rate * layer.dweights + self.momentum * layer.momentum_weights
+        layer.momentum_biases = - self.learning_rate * layer.dbiases + self.momentum * layer.momentum_biases
+
+        layer.weights += - self.learning_rate * layer.dweights + self.momentum * layer.momentum_weights
+        layer.biases += - self.learning_rate * layer.dbiases + self.momentum * layer.momentum_biases
+
+    def post_update(self):
+
         self.iteration += 1
         self.learning_rate = self.learning_rate_function.calculate(self.iteration)
 
@@ -81,4 +107,6 @@ class AdaptiveGradientDescent(Optimizer):
         layer.biases += - self.learning_rate * layer.dbiases / (np.sqrt(layer.momentum_biases) + self.epsilon)
 
     def post_update(self):
+
         self.iteration += 1
+        self.learning_rate = self.learning_rate_function.calculate(self.iteration)
