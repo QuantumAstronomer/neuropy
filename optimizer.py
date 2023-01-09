@@ -106,10 +106,9 @@ class AdaptiveGradientDescent(Optimizer):
     def post_update(self):
 
         self.iteration += 1
-        self.learning_rate = self.learning_rate_function.calculate(self.iteration)
 
 
-class AdaptiveDelta(Optimizer):
+class RootMeanSquare(Optimizer):
 
     def __init__(self, learning_rate: DecayFunction = NoDecay(0.1), rho: float = 0.95, epsilon: float = 1e-7):
 
@@ -126,15 +125,8 @@ class AdaptiveDelta(Optimizer):
         layer.momentum_weights = self.rho * layer.momentum_weights + (1 - self.rho) * layer.dweights**2
         layer.momentum_biases = self.rho * layer.momentum_biases + (1 - self.rho) * layer.dbiases**2
 
-        weights_update = layer.dweights * np.sqrt(layer.memory_weights + self.epsilon) / np.sqrt(layer.momentum_weights + self.epsilon)
-        biases_update = layer.dbiases * np.sqrt(layer.memory_biases + self.epsilon) / np.sqrt(layer.momentum_biases + self.epsilon)
-
-        layer.memory_weights = self.rho * layer.memory_weights + (1 - self.rho) * weights_update**2
-        layer.memory_biases = self.rho * layer.memory_biases + (1 - self.rho) * biases_update**2
-
-        layer.weights += - self.learning_rate * weights_update
-        layer.biases += - self.learning_rate * biases_update
+        layer.weights += - self.learning_rate * layer.dweights / np.sqrt(layer.momentum_weights + self.epsilon)
+        layer.biases += - self.learning_rate * layer.dbiases / np.sqrt(layer.momentum_biases + self.epsilon)
 
     def post_update(self):
         self.iteration += 1
-        self.learning_rate = self.learning_rate_function.calculate(self.iteration)
