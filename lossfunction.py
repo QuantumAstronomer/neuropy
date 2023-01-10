@@ -37,7 +37,8 @@ class LossFunction(Protocol):
 class MeanSquaredError():
     '''
     This class implements the mean squared error loss function, also known as least squares error.
-    While the MSE has many strengths, it is not robust against outliers.
+    While the MSE has many strengths, it is not robust against outliers. The loss is defined as:
+        L(r) = 1 / n * sum(r^2)
     '''
 
     def forward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> np.float64:
@@ -55,6 +56,8 @@ class MeanAbsoluteError():
     '''
     This class implements the mean absolute error loss function. The MAE has the advantage of being more
     robust against outliers compared to the MSE. However, its derivative is not smooth or continuous.
+    The loss function for the MAE is defined:
+        L(r) = 1 / n * sum(|r|)
     '''
 
     def forward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> np.float64:
@@ -72,8 +75,11 @@ class Huber():
     This class implements the Huber loss function, which is a hybrid between the MeanSquaredError and
     the MeanAbsoluteError. Advantage of the Huber loss is mainly coming from its robustness to outliers
     as these are given less weight than in a standard MeanSquaredError, while still having the nice continuity
-    we so much desire around residual = 0.
-    
+    we so much desire around residual = 0. The Huber loss function is defined as:
+                          ( 1/2 * r^2 if r <= delta
+        L(r) = 1 / n * sum(
+                          ( |r| * delta - 1/2 * delta^2 if r > delta
+
     Since the Huber loss requires a parameter, delta, to be specified, the class
     needs an initializer method.
     '''
@@ -96,7 +102,8 @@ class PseudoHuber:
     '''
     This class implements the Pseudo-Huber loss function. It tries to improve on the Huber function by
     being smooth everywhere, approximating an MSE for small residuals and approximating the MAE for
-    large residuals/outliers.
+    large residuals/outliers. The Pseudo-Huber loss function is defined as:
+        L(r) = 1/n * sum(delta * sqrt(1 + r^2 / delta^2) - delta)
 
     Since the Pseudo-Huber loss requires a parameter, delta, to be specified, the class
     need an initializer method.
@@ -119,8 +126,9 @@ class PseudoHuber:
 class GeneralizedHuber:
     '''
     Generalized Huber loss function, also called a Smooth Robust loss function, as defined by Gokcesu and Gokcesu 2021
-    (url: https://arxiv.org/abs/2108.12627). The Generalized Huber loss 
-    function improves upon the Huber and Pseudo-Huber functions be guaranteeing convexity over the whole domain.
+    (url: https://arxiv.org/abs/2108.12627). The Generalized Huber loss function improves upon the Huber and 
+    Pseudo-Huber functions be guaranteeing convexity over the whole domain and is defined as:
+        L(r) = 1 / a * log(exp(a * r) + exp(-a * x) + b) - 1 / a * log(2 + b)
 
     Again, the Generalized Huber loss function requires an initializer method as there are two parameters, 'a' and 'b',
     that need to be specified. Where 'a' controls how quickly the loss function transition from quadratic to linear,
