@@ -92,7 +92,7 @@ class Network():
                 self.optimizer.post_update()
 
             if (epoch + 1) % log_epochs == 0 or epoch == epochs - 1 or epoch == 0:
-                print(f'epoch: {epoch + 1}/{epochs}, total loss: {total_loss:.5f}')
+                print(f'epoch: {epoch + 1}/{epochs}, total loss: {total_loss:.5f}', end = '\r')
 
 
     def forward(self, x_data: npt.NDArray[np.float64], training_status: bool = True) -> npt.NDArray[np.float64]:
@@ -119,8 +119,4 @@ class Network():
 
 
     def predict(self, x_data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-        
-        result = np.empty(shape = x_data.shape[0], dtype = np.float64)
-        for i, datum in enumerate(x_data):
-            result[i] = self.forward(datum, training_status = False)
-        return result
+        return self.forward(x_data, training_status = False)

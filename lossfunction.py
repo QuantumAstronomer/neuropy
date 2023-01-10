@@ -76,9 +76,9 @@ class Huber():
     the MeanAbsoluteError. Advantage of the Huber loss is mainly coming from its robustness to outliers
     as these are given less weight than in a standard MeanSquaredError, while still having the nice continuity
     we so much desire around residual = 0. The Huber loss function is defined as:
-                          ( 1/2 * r^2 if r <= delta
+                          ( 1/2 * r^2 if |r| <= delta
         L(r) = 1 / n * sum(
-                          ( |r| * delta - 1/2 * delta^2 if r > delta
+                          ( |r| * delta - 1/2 * delta^2 if |r| > delta
 
     Since the Huber loss requires a parameter, delta, to be specified, the class
     needs an initializer method.
@@ -115,7 +115,7 @@ class PseudoHuber:
     def forward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> np.float64:
 
         residual = y_true - y_predicted
-        return np.mean(self.delta * (np.sqrt((1 + residual**2 / self.delta**2)) - 1))
+        return np.mean(np.sqrt((self.delta**2 + residual**2)) - self.delta)
 
     def backward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
 
@@ -128,7 +128,7 @@ class GeneralizedHuber:
     Generalized Huber loss function, also called a Smooth Robust loss function, as defined by Gokcesu and Gokcesu 2021
     (url: https://arxiv.org/abs/2108.12627). The Generalized Huber loss function improves upon the Huber and 
     Pseudo-Huber functions be guaranteeing convexity over the whole domain and is defined as:
-        L(r) = 1 / a * log(exp(a * r) + exp(-a * x) + b) - 1 / a * log(2 + b)
+        L(r) = 1 / a * log(exp(a * r) + exp(-a * r) + b) - 1 / a * log(2 + b)
 
     Again, the Generalized Huber loss function requires an initializer method as there are two parameters, 'a' and 'b',
     that need to be specified. Where 'a' controls how quickly the loss function transition from quadratic to linear,
