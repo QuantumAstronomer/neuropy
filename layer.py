@@ -256,7 +256,8 @@ class Convolution1D(TrainableLayer):
     output is 2 dimensional: inputs in each filter in one direction and one such array
     for each filter in the other direction. Thus it should be followed by a flattening layer
     that pushes the input values back into 1D. Whilst some optimization has been performed
-    to improve performance using numpy's
+    to improve performance using numpy's efficient matrix multiplication and reducing the
+    need for (nested) for-loops, it might still be improved significantly.
     '''
 
     def __init__(self, input_shape: int, number_filters: int, filter_shape: int, stride: int = 2, padding: int = 0):
