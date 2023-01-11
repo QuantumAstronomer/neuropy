@@ -80,7 +80,6 @@ class GradientDescent(Optimizer):
         layer.biases += biases_update
 
     def post_update(self):
-
         self.iteration += 1
         self.learning_rate = self.learning_rate_function.calculate(self.iteration)
 
@@ -109,7 +108,6 @@ class NesterovGradient(Optimizer):
         layer.biases += - self.learning_rate * layer.dbiases + self.momentum * layer.momentum_biases
 
     def post_update(self):
-
         self.iteration += 1
         self.learning_rate = self.learning_rate_function.calculate(self.iteration)
 
@@ -145,7 +143,6 @@ class AdaptiveGradient(Optimizer):
         layer.biases += - self.learning_rate * layer.dbiases / (np.sqrt(layer.momentum_biases) + self.epsilon)
 
     def post_update(self):
-
         self.iteration += 1
 
 

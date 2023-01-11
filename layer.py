@@ -271,7 +271,7 @@ class Convolution1D(TrainableLayer):
         self.padding: int = padding
 
         self.input_shape: int = input_shape
-        self.filter_steps: int = (self.input_shape - self.filter_shape) // self.stride + 2
+        self.filter_steps: int = (self.input_shape - self.filter_shape - 1 + 2 * self.padding) // self.stride + 2
         self.output_shape: tuple[int, int] = (self.number_filters, self.filter_steps)
         self.previous: Layer | MinimalLayer
         self.next: Layer | MinimalLayer
