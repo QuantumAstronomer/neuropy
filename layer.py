@@ -12,7 +12,7 @@ The layer follows a protocol which looks as follows:
 
 class Layer(Protocol):
 
-    def forward(self, input_data: npt.NDArray[np.float64]):
+    def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
         ...
 
     def backward(self, grad_output: npt.NDArray[np.float64]):
@@ -54,8 +54,8 @@ class Layer(MinimalLayer, Protocol):
     # First each layer will house some information about its
     # function and shape.
     layertype: str
-    input_shape: int
-    output_shape: int
+    input_shape: int | tuple[int, int]
+    output_shape: int | tuple[int, int]
 
     # The previous and next attributes will be set when the
     # neural network is constructed. They keep track of the
@@ -100,6 +100,7 @@ class InputLayer(MinimalLayer):
 
 
     def forward(self, input_data: npt.NDArray[np.float64]):
+        self.input = input_data
         self.ouput = input_data
 
     def backward(self, grad_output: npt.NDArray[np.float64]):
@@ -134,7 +135,7 @@ class FullyConnected(TrainableLayer):
         self.rate: float = 1 - dropout_rate
 
         # Create and initialize all variables for the weights and biases
-        # this is a fully connected layer after all.Your location
+        # this is a fully connected layer after all.
         self.weights: npt.NDArray[np.float64] = np.random.rand(*self.shape).astype(np.float64) - .5
         self.biases: npt.NDArray[np.float64] = np.random.rand(1, self.output_shape).astype(np.float64) -.5
 
@@ -156,7 +157,7 @@ class FullyConnected(TrainableLayer):
         else:
             self.binary_mask = np.ones_like(self.input_shape)
 
-        # Remember the input values
+        # Remember the input values and disable some of them using the dropout
         self.input = input_data.reshape(input_data.shape[0], input_data.shape[-1]) * self.binary_mask
         # Calculate output values
         self.output = np.dot(self.input, self.weights) + self.biases
@@ -168,13 +169,13 @@ class FullyConnected(TrainableLayer):
         the backward method also applies L1 and L2 regularization to aid in the overall
         robustness of the neural network in general.
         '''
-        
+        self.doutput = grad_output
         # Gradients on the parameters connected to this layer.
         self.dweights = np.dot(self.input.T, grad_output)
         self.dbiases = grad_output.sum(axis = 0, keepdims = True)
 
         # Gradient on the input values
-        self.dinput = np.dot(grad_output, self.weights.T)
+        self.dinput = self.binary_mask * np.dot(grad_output, self.weights.T)
 
         if self.l1_regularization > 0.:
             dl1weights = np.where(self.weights < 0, -1, 1)
@@ -215,4 +216,116 @@ class Activation(Layer):
         self.output = self.act.forward(self.input)
 
     def backward(self, grad_output: npt.NDArray[np.float64]):
+        self.doutput = grad_output
         self.dinput = grad_output * self.act.backward(self.output)
+
+
+class Flatten1D(Layer):
+    '''
+    A Flattening layer is useful in conjucntion with convolution layers: the output
+    of a convolution layer is often multi dimensional, e.g. a convolution layer that
+    takes in a 1 dimensional array will produce an output in 2 dimensions: one dimension
+    is the the length of the filter while the other is the number of filters.
+
+    Flattening brings this output back into a singular dimension by simply flattening
+    the result. Since it is only a pass through layer with no learnable parameters its
+    implementation of the forward and backward operations are very simple: only reshaping
+    the inputs and outputs is required.
+    '''
+
+    def __init__(self, input_shape: tuple[int, int]):
+        self.layertype = '1D Flattening'
+        self.input_shape: tuple[int, int] = input_shape
+        self.output_shape: int = int(np.prod(self.input_shape))
+        self.previous: Layer | MinimalLayer
+        self.next: Layer | MinimalLayer
+
+    def forward(self, input_data: npt.NDArray[np.float64], training = True):
+
+        self.input = input_data
+        self.output = self.input.reshape(input_data.shape[0], -1)
+
+    def backward(self, grad_output: npt.NDArray[np.float64]):
+        self.doutput = grad_output
+        self.dinput = grad_output.reshape(self.input.shape[0], *self.input_shape)
+
+
+class Convolution1D(TrainableLayer):
+    '''
+    A one dimensional convolution layer, i.e. it takes in a 1D array of input values. Its
+    output is 2 dimensional: inputs in each filter in one direction and one such array
+    for each filter in the other direction. Thus it should be followed by a flattening layer
+    that pushes the input values back into 1D. Whilst some optimization has been performed
+    to improve performance using numpy's
+    '''
+
+    def __init__(self, input_shape: int, number_filters: int, filter_shape: int, stride: int = 2, padding: int = 0):
+
+        # Create all variables needed to store the information about this layer
+        # and where it is in the neural network.
+        self.layertype = 'Convolution 1D'
+        self.number_filters: int = number_filters
+        self.filter_shape: int = filter_shape
+        self.stride: int = stride
+        self.padding: int = padding
+
+        self.input_shape: int = input_shape
+        self.filter_steps: int = (self.input_shape - self.filter_shape) // self.stride + 2
+        self.output_shape: tuple[int, int] = (self.number_filters, self.filter_steps)
+        self.previous: Layer | MinimalLayer
+        self.next: Layer | MinimalLayer
+
+        # Create and initialize all variables for the weights and biases
+        # this is a fully connected layer after all.Your location
+        self.weights: npt.NDArray[np.float64] = np.random.rand(self.number_filters, self.filter_shape).astype(np.float64) - .5
+        self.biases: npt.NDArray[np.float64] = np.random.rand(self.number_filters).astype(np.float64) -.5
+
+        self.dweights: npt.NDArray[np.float64]  = np.zeros_like(self.weights, dtype = np.float64)
+        self.dbiases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+
+        self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
+        self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+
+    def squeeze_to_filter(self, input_data: npt.NDArray[np.float64]):
+        '''
+        Reshape the input data to make it conform with the filter size. Doing this now
+        makes it a lot easier to work with later on, i.e. we need way less loops to perform
+        the calculations.
+        '''
+        
+        self.reshaped_input = np.zeros(shape = (input_data.shape[0], self.filter_steps, self.filter_shape))
+
+        for n, datapoint in enumerate(input_data):
+            for step in range(self.filter_steps):
+                datum: npt.NDArray[np.float64] = datapoint[step * self.stride : step * self.stride + self.filter_shape].copy()
+                datum.resize(self.filter_shape)
+                self.reshaped_input[n, step] = datum
+
+
+    def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
+
+        self.input = input_data.reshape(input_data.shape[0], -1)
+        self.padded_input = np.pad(self.input, [(0, 0), (self.padding, self.padding)], mode = 'constant')
+
+        self.squeeze_to_filter(self.input)
+
+        self.output = np.zeros(shape = (self.input.shape[0], *self.output_shape))
+
+        for filter in range(self.output_shape[0]):
+            self.output[:, filter] = np.dot(self.reshaped_input, self.weights[filter]) + self.biases[filter]
+
+
+    def backward(self, grad_output: npt.NDArray[np.float64]):
+
+        self.doutput = grad_output
+        self.dinput = np.zeros_like(self.input)
+        self.dweights = np.zeros_like(self.weights)
+
+        self.dbiases = np.sum(self.doutput, axis = (0, -1))
+
+        for filter in range(self.number_filters):
+            self.dweights[filter] = np.dot(self.reshaped_input.T, self.doutput[:, filter, :]).sum(axis = (1, 2))
+
+        for n_output in range(self.output_shape[1]):
+            shape_self_dinput = self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape].shape[1]
+            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(grad_output[:, :, n_output], self.weights[:, : shape_self_dinput], axes = 1)
