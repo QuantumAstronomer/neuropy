@@ -149,3 +149,28 @@ class GeneralizedHuber:
         
         residual = y_true - y_predicted
         return - (np.exp(self.a * residual) - np.exp(-self.a * residual)) / (np.exp(self.a * residual) + np.exp(-self.a * residual) + self.b)
+
+
+class Tukey():
+    '''
+    The Tukey loss function is similar in spirit to the Huber loss function by being quadratic near the origin, i.e. at small
+    residual values, while being more insensitive to outliers as it is constant for large residuals. It does provide a smooth
+    transition between the two regimes. The Tukey loss is defined as:
+                          ( delta^2 / 6 * (1 - (1 - r^2 / delta^2)^3) if |r| <= delta
+        L(r) = 1 / n * sum(
+                          ( delta^2 / 6
+
+    Since the Tukey loss requires the specification of a parameter, being delta, it needs an initializer method to
+    set its value.
+    '''
+
+    def __init__(self, delta: float = 1.):
+        self.delta: float = delta
+
+    def forward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> np.float64:
+        residual = y_true - y_predicted
+        return np.mean(np.where(np.abs(residual) <= self.delta, self.delta**2 / 6 * (1 - (1 - residual**2 / self.delta**2)**3), self.delta**2 / 6))
+
+    def backward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        residual = y_true - y_predicted
+        return np.where(np.abs(residual) <= self.delta, residual * (1 - residual**2 / self.delta**2)**2, 1)
