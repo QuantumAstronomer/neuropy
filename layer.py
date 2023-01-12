@@ -296,11 +296,10 @@ class Convolution1D(TrainableLayer):
         
         self.reshaped_input = np.zeros(shape = (input_data.shape[0], self.filter_steps, self.filter_shape))
 
-        for n, datapoint in enumerate(input_data):
-            for step in range(self.filter_steps):
-                datum: npt.NDArray[np.float64] = datapoint[step * self.stride : step * self.stride + self.filter_shape].copy()
-                datum.resize(self.filter_shape)
-                self.reshaped_input[n, step] = datum
+        for step in range(self.filter_steps):
+            datum: npt.NDArray[np.float64] = input_data[:, step * self.stride : step * self.stride + self.filter_shape]
+            shape_input = datum.shape[-1]
+            self.reshaped_input[: , step, :shape_input] = datum
 
 
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):

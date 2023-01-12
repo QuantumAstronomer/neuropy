@@ -6,8 +6,6 @@ from .layer import Layer, InputLayer, TrainableLayer
 from .optimizer import Optimizer
 from .lossfunction import LossFunction
 
-## TODO: Implement network visualization
-
 
 class Network():
 
