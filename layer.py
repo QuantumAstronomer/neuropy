@@ -307,9 +307,9 @@ class Convolution1D(TrainableLayer):
         self.input = input_data.reshape(input_data.shape[0], -1)
         self.padded_input = np.pad(self.input, [(0, 0), (self.padding, self.padding)], mode = 'constant')
 
-        self.squeeze_to_filter(self.input)
+        self.squeeze_to_filter(self.padded_input)
 
-        self.output = np.zeros(shape = (self.input.shape[0], *self.output_shape))
+        self.output = np.zeros(shape = (self.padded_input.shape[0], *self.output_shape))
 
         for filter in range(self.output_shape[0]):
             self.output[:, filter] = np.dot(self.reshaped_input, self.weights[filter]) + self.biases[filter]
@@ -324,8 +324,8 @@ class Convolution1D(TrainableLayer):
         self.dbiases = np.sum(self.doutput, axis = (0, -1))
 
         for filter in range(self.number_filters):
-            self.dweights[filter] = np.dot(self.reshaped_input.T, self.doutput[:, filter, :]).sum(axis = (1, 2))
+            self.dweights[filter] = np.tensordot(self.reshaped_input.T, self.doutput[:, filter], axes = ([1, 2], [1, 0]))
 
         for n_output in range(self.output_shape[1]):
-            shape_self_dinput = self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape].shape[1]
-            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(grad_output[:, :, n_output], self.weights[:, : shape_self_dinput], axes = 1)
+            shape_dinput = self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape].shape[-1]
+            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(grad_output[:, :, n_output], self.weights[:, : shape_dinput], axes = 1)
