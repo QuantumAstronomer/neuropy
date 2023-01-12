@@ -229,7 +229,7 @@ class AdaD(Optimizer):
 
 class AdaM(Optimizer):
     '''
-    The Adaptive Momentum Estimation (AdaM), proposed by Kingma and Ba 2015 (url: https://arxiv.org/abs/1412.6980)
+    The Adaptive Moment Estimation (AdaM), proposed by Kingma and Ba 2015 (url: https://arxiv.org/abs/1412.6980)
     optimizer is another method that computes adaptive learning rates for each parameter. In addition to storing 
     the exponentially decaying average of the past gradients squared like Adaptive Delta and RMS propagation, 
     AdaM also keeps an exponentially decaying average of past gradients, similar to a momentum term.
@@ -238,7 +238,7 @@ class AdaM(Optimizer):
     seen as a ball rolling down a slope, AdaM behaves like a heavy ball with friction.
     '''
 
-    def __init__(self, learning_rate: float = 0.005, beta1: float = .9, beta2: float = .999, epsilon: float = 1e-7):
+    def __init__(self, learning_rate: float = 0.005, beta1: float = .999, beta2: float = .9, epsilon: float = 1e-7):
         self.learning_rate: float = learning_rate
 
         self.beta1: float = beta1
@@ -276,7 +276,7 @@ class NAdaM(Optimizer):
     a correction is applied if the momentum step overshot the optimal solution.
     '''
 
-    def __init__(self, learning_rate: float = 0.005, beta1: float = .9, beta2: float = .999, epsilon: float = 1e-7):
+    def __init__(self, learning_rate: float = 0.005, beta1: float = .999, beta2: float = .9, epsilon: float = 1e-7):
 
         self.learning_rate: float = learning_rate
 
@@ -298,10 +298,10 @@ class NAdaM(Optimizer):
         layer.momentum_weights[1] = self.beta2 * layer.momentum_weights[1] + (1 - self.beta2) * layer.dweights**2
         layer.momentum_biases[1] = self.beta2 * layer.momentum_biases[1] + (1 - self.beta2) * layer.dbiases**2
 
-        layer.weights += -self.learning_rate / np.sqrt(layer.momentum_weights[1] + self.epsilon) * (self.beta1 * layer.momentum_weights[0] / (1 - self.beta1**(self.iteration + 1)) + \
-                                                                                                   (1 - self.beta1) * layer.dweights / (1 - self.beta1**(self.iteration + 1)))
-        layer.biases += -self.learning_rate / np.sqrt(layer.momentum_biases[1] + self.epsilon) * (self.beta1 * layer.momentum_biases[0] / (1 - self.beta1**(self.iteration + 1)) +\
-                                                                                                 (1 - self.beta1) * layer.dbiases / (1 - self.beta1**(self.iteration + 1)))
+        layer.weights += -self.learning_rate / np.sqrt(layer.momentum_weights[1] + self.epsilon) * \
+                         (self.beta1 * layer.momentum_weights[0] / (1 - self.beta1**(self.iteration + 1)) + (1 - self.beta1) * layer.dweights / (1 - self.beta1**(self.iteration + 1)))
+        layer.biases += -self.learning_rate / np.sqrt(layer.momentum_biases[1] + self.epsilon) * \
+                        (self.beta1 * layer.momentum_biases[0] / (1 - self.beta1**(self.iteration + 1)) + (1 - self.beta1) * layer.dbiases / (1 - self.beta1**(self.iteration + 1)))
 
     def post_update(self):
         self.iteration += 1
@@ -345,8 +345,10 @@ class AMS(Optimizer):
         layer.momentum_weights[1] = np.maximum(layer.momentum_weights[1], self.beta2 * layer.momentum_weights[1] + (1 - self.beta2) * layer.dweights**2)
         layer.momentum_biases[1] = np.maximum(layer.momentum_biases[1], self.beta2 * layer.momentum_biases[1] + (1 - self.beta2) * layer.dbiases**2)
 
-        layer.weights += -self.learning_rate * layer.momentum_weights[0] / np.sqrt(layer.momentum_weights[1] + self.epsilon)
-        layer.biases += -self.learning_rate * layer.momentum_biases[0] / np.sqrt(layer.momentum_biases[1] + self.epsilon)
+        layer.weights += -self.learning_rate * layer.momentum_weights[0] / (1 - self.beta1**(self.iteration + 1)) / \
+                          (np.sqrt(layer.momentum_weights[1] / (1 - self.beta2**(self.iteration + 1))) + self.epsilon)
+        layer.biases += -self.learning_rate * layer.momentum_biases[0] / (1 - self.beta1**(self.iteration + 1)) / \
+                         (np.sqrt(layer.momentum_biases[1] / (1 - self.beta2**(self.iteration + 1))) + self.epsilon)
 
     def post_update(self):
         self.iteration += 1
