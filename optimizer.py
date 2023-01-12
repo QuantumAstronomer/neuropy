@@ -257,13 +257,10 @@ class AdaM(Optimizer):
         layer.momentum_weights[1] = self.beta2 * layer.momentum_weights[1] + (1 - self.beta2) * layer.dweights**2
         layer.momentum_biases[1] = self.beta2 * layer.momentum_biases[1] + (1 - self.beta2) * layer.dbiases**2
 
-        momentum_weights_corrected = layer.momentum_weights[0] / (1 - self.beta1**(self.iteration + 1))
-        momentum_biases_corrected = layer.momentum_biases[0] / (1 - self.beta1**(self.iteration + 1))
-        memory_weights_corrected = layer.momentum_weights[1] / (1 - self.beta2**(self.iteration + 1))
-        memory_biases_corrected = layer.momentum_biases[1] / (1 - self.beta2**(self.iteration + 1))
-
-        layer.weights += -self.learning_rate * momentum_weights_corrected / np.sqrt(memory_weights_corrected + self.epsilon)
-        layer.biases += -self.learning_rate * momentum_biases_corrected / np.sqrt(memory_biases_corrected + self.epsilon)
+        layer.weights += -self.learning_rate * layer.momentum_weights[0] / (1 - self.beta1**(self.iteration + 1)) / \
+                          np.sqrt(layer.momentum_weights[1] / (1 - self.beta2**(self.iteration + 1)) + self.epsilon)
+        layer.biases += -self.learning_rate * layer.momentum_biases[0] / (1 - self.beta1**(self.iteration + 1)) / \
+                         np.sqrt(layer.momentum_biases[1] / (1 - self.beta2**(self.iteration + 1)) + self.epsilon)
 
     def post_update(self):
         self.iteration += 1
