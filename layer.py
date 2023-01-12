@@ -328,4 +328,4 @@ class Convolution1D(TrainableLayer):
 
         for n_output in range(self.output_shape[1]):
             shape_dinput = self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape].shape[-1]
-            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(grad_output[:, :, n_output], self.weights[:, : shape_dinput], axes = 1)
+            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(self.doutput[:, :, n_output], self.weights[:, : shape_dinput], axes = 1)
