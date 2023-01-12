@@ -174,11 +174,14 @@ class AdaptiveDelta(Optimizer):
             layer.momentum_weights = np.zeros(shape = (2, *layer.weights.shape), dtype = np.float64)
             layer.momentum_biases = np.zeros(shape = (2, *layer.biases.shape), dtype = np.float64)
 
-        layer.momentum_weights = self.rho * layer.momentum_weights + (1 - self.rho) * layer.dweights**2
-        layer.momentum_biases = self.rho * layer.momentum_biases + (1 - self.rho) * layer.dbiases**2
+        layer.momentum_weights[0] = self.rho * layer.momentum_weights[0] + (1 - self.rho) * layer.dweights**2
+        layer.momentum_biases[0] = self.rho * layer.momentum_biases[0] + (1 - self.rho) * layer.dbiases**2
 
-        layer.weights += - self.learning_rate * layer.dweights * np.sqrt(layer.momentum_weights[0] + self.epsilon) / np.sqrt(layer.momentum_weights[1] + self.epsilon)
-        layer.biases += - self.learning_rate * layer.dbiases * np.sqrt(layer.momentum_biases[0] + self.epsilon) / np.sqrt(layer.momentum_biases[1] + self.epsilon)
+        layer.momentum_weights[1] = self.rho* layer.momentum_weights[1] + (1 - self.rho) * self.learning_rate * layer.dweights**2 / (layer.momentum_weights[0] + self.epsilon)
+        layer.momentum_biases[1] = self.rho* layer.momentum_biases[1] + (1 - self.rho) * self.learning_rate * layer.dbiases**2 / (layer.momentum_biases[0] + self.epsilon)
+
+        layer.weights += - layer.dweights * np.sqrt(layer.momentum_weights[0] + self.epsilon) / np.sqrt(layer.momentum_weights[1] + self.epsilon)
+        layer.biases += - layer.dbiases * np.sqrt(layer.momentum_biases[0] + self.epsilon) / np.sqrt(layer.momentum_biases[1] + self.epsilon)
 
     def post_update(self):
         self.iteration += 1
