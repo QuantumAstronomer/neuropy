@@ -55,9 +55,10 @@ class GradientDescent(Optimizer):
     end of training possibly moving it far away from the optimal solution.
     '''
 
-    def __init__(self, learning_rate: DecayFunction = NoDecay(0.05), momentum: float = 0.):
+    def __init__(self, learning_rate: float = 0.05, momentum: float = 0., decay_function = NoDecay()):
 
-        self.learning_rate_function: DecayFunction = learning_rate
+        decay_function.set_initial_learning_rate(learning_rate)
+        self.learning_rate_function: DecayFunction = decay_function
         self.learning_rate: float = self.learning_rate_function.learning_rate
 
         self.momentum: float = momentum
@@ -91,8 +92,10 @@ class NesterovGradient(Optimizer):
     performing the gradient calculation before updating the parameters in the trainable layer.
     '''
 
-    def __init__(self, learning_rate: DecayFunction = NoDecay(0.01), momentum: float = .9):
-        self.learning_rate_function: DecayFunction = learning_rate
+    def __init__(self, learning_rate: float = 0.05, momentum: float = 0., decay_function = NoDecay()):
+
+        decay_function.set_initial_learning_rate(learning_rate)
+        self.learning_rate_function: DecayFunction = decay_function
         self.learning_rate: float = self.learning_rate_function.learning_rate
 
         self.momentum: float = momentum
