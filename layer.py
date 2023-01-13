@@ -253,7 +253,7 @@ class Flatten1D(Layer):
 class Convolution1D(TrainableLayer):
     '''
     A one dimensional convolution layer, i.e. it takes in a 1D array of input values. Its
-    output is 2 dimensional: inputs in each filter in one direction and one such array
+    output is 2 dimensional: outputs in each filter in one direction and one such array
     for each filter in the other direction. Thus it should be followed by a flattening layer
     that pushes the input values back into 1D. Whilst some optimization has been performed
     to improve performance using numpy's efficient matrix multiplication and reducing the
@@ -311,7 +311,7 @@ class Convolution1D(TrainableLayer):
 
         self.output = np.zeros(shape = (self.padded_input.shape[0], *self.output_shape))
 
-        for filter in range(self.output_shape[0]):
+        for filter in range(self.number_filters):
             self.output[:, filter] = np.dot(self.reshaped_input, self.weights[filter]) + self.biases[filter]
 
 
@@ -324,8 +324,73 @@ class Convolution1D(TrainableLayer):
         self.dbiases = np.sum(self.doutput, axis = (0, -1))
 
         for filter in range(self.number_filters):
-            self.dweights[filter] = np.tensordot(self.reshaped_input.T, grad_output[:, filter], axes = ([1, 2], [1, 0]))
+            self.dweights[filter] = np.tensordot(self.reshaped_input.T, grad_output[:, filter], axes = ([-1, -2], [0, 1]))
 
-        for n_output in range(self.output_shape[1]):
-            shape_dinput = self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape].shape[-1]
-            self.dinput[:, n_output * self.stride : n_output * self.stride + self.filter_shape] += np.tensordot(grad_output[:, :, n_output], self.weights[:, : shape_dinput], axes = 1)
+        for step in range(self.filter_steps):
+            shape_dinput = self.dinput[:, step * self.stride : step * self.stride + self.filter_shape].shape[-1]
+            self.dinput[:, :shape_dinput] += np.tensordot(grad_output[:, :, step], self.weights[:, :shape_dinput], axes = 1)
+
+
+class Convolution2D():
+
+    def __init__(self, input_shape: tuple[int, int], number_filters: int, filter_shape: tuple[int, int], stride: tuple[int, int] = (2, 2), padding: tuple[int, int] = (0, 0)):
+
+        # Create all variables needed to store the information about this layer
+        # and where it is in the neural network.
+        self.layertype = 'Convolution 1D'
+        self.number_filters: int = number_filters
+        self.filter_shape: tuple[int, int] = filter_shape
+        self.stride: tuple[int, int] = stride        
+
+        self.input_shape: tuple[int, int] = input_shape
+        self.input_dimensions: int = len(self.input_shape)
+        self.padding: tuple[int, int] = padding
+        self.filter_steps: tuple[int, int] = tuple((np.array(self.input_shape) - np.array(self.filter_shape) - 1 + 2 * np.array(self.padding)) // np.array(self.stride) + 2)
+        self.output_shape: tuple[int, int] = (self.number_filters, *self.filter_steps)
+        self.previous: Layer | MinimalLayer
+        self.next: Layer | MinimalLayer
+
+        # Create and initialize all variables for the weights and biases
+        # this is a fully connected layer after all.Your location
+        self.weights: npt.NDArray[np.float64] = np.random.rand(self.number_filters, *self.filter_shape).astype(np.float64) - .5
+        self.biases: npt.NDArray[np.float64] = np.random.rand(self.number_filters).astype(np.float64) -.5
+
+        self.dweights: npt.NDArray[np.float64]  = np.zeros_like(self.weights, dtype = np.float64)
+        self.dbiases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+
+        self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
+        self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+        
+    def squeeze_to_filter(self, input_data: npt.NDArray[np.float64]):
+
+        self.reshaped_input = np.zeros(shape = (input_data.shape[0], *self.filter_steps, *self.filter_shape))
+
+        for i in range(self.filter_steps[0]):
+            for j in range(self.filter_steps[1]):
+                datum = input_data[:, i * self.stride[0] : i * self.stride[0] + self.filter_shape[0], j * self.stride[1] : j * self.stride[1] + self.filter_shape[1]]
+                self.reshaped_input[:, i, j, :datum.shape[-2], :datum.shape[-1]] = datum
+
+    def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
+        self.input = input_data
+        self.padded_input = np.pad(self.input, [(0, 0), (self.padding[0], self.padding[0]), (self.padding[1], self.padding[1])], mode = 'constant')
+
+        self.squeeze_to_filter(self.padded_input)
+
+        self.output = np.zeros(shape = (self.padded_input.shape[0], *self.output_shape))
+
+        for filter in range(self.number_filters):
+            self.output[:, filter] = np.tensordot(self.reshaped_input, self.weights[filter], axes = ([-1, -2], [1, 0]))
+
+    def backward(self, grad_output: npt.NDArray[np.float64]):
+
+        self.doutput = grad_output
+        self.dinput = np.zeros_like(self.input)
+        self.dweights = np.zeros_like(self.weights)
+
+        for filter in range(self.number_filters):
+            self.dweights[filter] = np.tensordot(self.reshaped_input.T, grad_output[:, filter], axes = ([-1, -2, -3], [0, 1, 2])).T
+
+        for i in range(self.filter_steps[0]):
+            for j in range(self.filter_steps[1]):
+                shape_dinput = self.dinput[:, i * self.stride[0] : i * self.stride[0] + self.filter_shape[0], j * self.stride[1] : j * self.stride[1] + self.filter_shape[1]].shape
+                self.dinput[:, :shape_dinput[-2], :shape_dinput[-1]] = np.tensordot(grad_output[:, :, 0, 0], self.weights[:, :shape_dinput[-2], :shape_dinput[-1]], axes = ([-1], [0]))
