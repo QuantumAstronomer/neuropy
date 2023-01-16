@@ -27,6 +27,7 @@ class Network():
     def add_layer(self, layer: Layer):
         self.layers.append(layer)
 
+
     def compile(self):
 
         assert self.lossfunction is not None
@@ -51,10 +52,6 @@ class Network():
 
             if isinstance(layer, TrainableLayer):
                 self.trainable_layers.append(layer)
-
-            if layer.layertype != 'Drop out':
-                self.evaluation_layers.append(layer)
-
 
 
     def train(self, x_train: npt.NDArray[np.float64], y_train: npt.NDArray[np.float64], *, epochs: int = 1000, log_epochs: int = 100,
@@ -104,6 +101,7 @@ class Network():
 
             result = layer.output
         return result
+
 
     def backward(self, y_true: npt.NDArray[np.float64], y_predicted: npt.NDArray[np.float64]):
 
