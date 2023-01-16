@@ -105,6 +105,7 @@ class InputLayer(MinimalLayer):
         self.input = input_data
         self.ouput = input_data
 
+
     def backward(self, grad_output: npt.NDArray[np.float64]):
         raise NotImplementedError('An input layer can not backpropagate, it is the first layer...')
 
@@ -147,6 +148,7 @@ class FullyConnected(TrainableLayer):
         self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
         self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
 
+
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
         '''
         Perform a forward pass through the layer done by a matrix multiplication between
@@ -164,6 +166,7 @@ class FullyConnected(TrainableLayer):
         # Calculate output values
         self.output = np.dot(self.input, self.weights) + self.biases
 
+
     def backward(self, grad_output: npt.NDArray[np.float64]):
         '''
         The backward method calculates gradients on the input, weights, and biases.
@@ -171,6 +174,7 @@ class FullyConnected(TrainableLayer):
         the backward method also applies L1 and L2 regularization to aid in the overall
         robustness of the neural network in general.
         '''
+
         self.doutput = grad_output
         # Gradients on the parameters connected to this layer.
         self.dweights = np.dot(self.input.T, grad_output)
@@ -210,6 +214,7 @@ class Activation(Layer):
         # Set the activation function of the layer.
         self.act: ActivationFunction = activation_function
 
+
     def forward(self, input_data: npt.NDArray[np.float64], training = True):
 
         # Store the input values and calculate the output values
@@ -217,7 +222,9 @@ class Activation(Layer):
         self.input = input_data
         self.output = self.act.forward(self.input)
 
+
     def backward(self, grad_output: npt.NDArray[np.float64]):
+
         self.doutput = grad_output
         self.dinput = grad_output * self.act.backward(self.output)
 
@@ -236,18 +243,22 @@ class Flatten1D(Layer):
     '''
 
     def __init__(self, input_shape: tuple[int, int]):
+        
         self.layertype = '1D Flattening'
         self.input_shape: tuple[int, int] = input_shape
         self.output_shape: int = int(np.prod(self.input_shape))
         self.previous: Layer | MinimalLayer
         self.next: Layer | MinimalLayer
 
+
     def forward(self, input_data: npt.NDArray[np.float64], training = True):
 
         self.input = input_data
         self.output = self.input.reshape(input_data.shape[0], -1)
 
+
     def backward(self, grad_output: npt.NDArray[np.float64]):
+
         self.doutput = grad_output
         self.dinput = grad_output.reshape(self.input.shape[0], *self.input_shape)
 
@@ -293,6 +304,7 @@ class Convolution1D(TrainableLayer):
 
         self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
         self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
+
 
     def squeeze_to_filter(self, input_data: npt.NDArray[np.float64]):
         '''
@@ -354,7 +366,7 @@ class Convolution1D(TrainableLayer):
         self.dinput *= self.binary_mask
 
 
-class ConvolutionND():
+class ConvolutionND(TrainableLayer):
     '''
     Implementation of an N-dimensional convolution layer from scratch. Whilst this likely is quite inefficient it does
     work properly. If only a one dimensional version is needed, please refer to the Convolution1D class which is way
@@ -394,7 +406,8 @@ class ConvolutionND():
 
         self.momentum_weights: npt.NDArray[np.float64] = np.zeros_like(self.weights, dtype = np.float64)
         self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
-        
+
+  
     def squeeze_to_filter(self, input_data: npt.NDArray[np.float64]):
 
         self.reshaped_input = np.zeros(shape = (input_data.shape[0], *self.filter_shape))
@@ -404,6 +417,7 @@ class ConvolutionND():
             datum = input_data[:, *s1]
             s2 = [slice(0, shape) for shape in datum.shape[1:]]
             self.reshaped_input[:, *s2] = datum
+
 
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
 
@@ -418,7 +432,9 @@ class ConvolutionND():
 
         for i, filter in enumerate(zip(self.weights, self.biases)):
             for filter_step in product(*(range(filter_steps) for filter_steps in self.filter_steps)):                
-                self.output[:, i, *filter_step] = np.tensordot(self.reshaped_input, filter[0], axes = (np.arange(-1, -self.input_dimensions - 1, -1), np.arange(self.input_dimensions, 0, -1) - 1)) + filter[1]
+                self.output[:, i, *filter_step] = np.tensordot(self.reshaped_input, filter[0], \
+                                                               axes = (np.arange(-1, -self.input_dimensions - 1, -1), np.arange(self.input_dimensions, 0, -1) - 1)) + filter[1]
+
 
     def backward(self, grad_output: npt.NDArray[np.float64]):
 
@@ -429,7 +445,7 @@ class ConvolutionND():
 
         for filter in range(self.number_filters):
             for filter_step in product(*(range(filter_steps) for filter_steps in self.filter_steps)):
-                self.dweights[filter] += np.dot(self.reshaped_input.T, grad_output[:, filter, *filter_step])
+                self.dweights[filter] += np.dot(self.reshaped_input.T, grad_output[:, filter, *filter_step]).T
 
         for filter_step in product(*(range(filter_steps) for filter_steps in self.filter_steps)):
             s1 = [slice(step * stride, step * stride + shape) for step, stride, shape in zip(filter_step, self.stride, self.filter_shape)]
