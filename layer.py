@@ -262,7 +262,8 @@ class Convolution1D(TrainableLayer):
     need for (nested) for-loops, it might still be improved significantly.
     '''
 
-    def __init__(self, input_shape: int, number_filters: int, filter_shape: int, stride: int = 2, padding: int = 0):
+    def __init__(self, input_shape: int, number_filters: int, filter_shape: int, stride: int = 2, padding: int = 0, \
+                 l1_regularization: float = 0., l2_regularization: float = 0., dropout_rate: float = 0.):
 
         # Create all variables needed to store the information about this layer
         # and where it is in the neural network.
@@ -277,6 +278,10 @@ class Convolution1D(TrainableLayer):
         self.output_shape: tuple[int, int] = (self.number_filters, self.filter_steps)
         self.previous: Layer | MinimalLayer
         self.next: Layer | MinimalLayer
+
+        self.l1_regularization: float = l1_regularization
+        self.l2_regularization: float = l2_regularization
+        self.rate: float = 1 - dropout_rate
 
         # Create and initialize all variables for the weights and biases
         # this is a fully connected layer after all.Your location
@@ -306,7 +311,12 @@ class Convolution1D(TrainableLayer):
 
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
 
-        self.input = input_data.reshape(input_data.shape[0], -1)
+        if self.rate > 0. and training:
+            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
+        else:
+            self.binary_mask = np.ones_like(self.input_shape)
+
+        self.input = (input_data * self.binary_mask).reshape(input_data.shape[0], -1)
         self.padded_input = np.pad(self.input, [(0, 0), (self.padding, self.padding)], mode = 'constant')
 
         self.squeeze_to_filter(self.padded_input)
@@ -331,6 +341,18 @@ class Convolution1D(TrainableLayer):
             shape_dinput = self.dinput[:, step * self.stride : step * self.stride + self.filter_shape].shape[-1]
             self.dinput[:, :shape_dinput] += np.tensordot(grad_output[:, :, step], self.weights[:, :shape_dinput], axes = 1)
 
+        if self.l1_regularization > 0.:
+            dl1weights = np.where(self.weights < 0, -1, 1)
+            dl1biases = np.where(self.biases < 0, -1, 1)
+            self.dweights += self.l1_regularization * dl1weights
+            self.dbiases += self.l1_regularization * dl1biases
+
+        if self.l2_regularization > 0.:
+            self.dweights += 2 * self.weights * self.l2_regularization
+            self.dbiases += 2 * self.biases * self.l2_regularization
+
+        self.dinput *= self.binary_mask
+
 
 class ConvolutionND():
     '''
@@ -339,7 +361,8 @@ class ConvolutionND():
     more efficient as it has less overhead and computes things more vectorized.
     '''
 
-    def __init__(self, input_shape: tuple[int, ...], number_filters: int, filter_shape: tuple[int, ...], stride: tuple[int, ...] = (2, )):
+    def __init__(self, input_shape: tuple[int, ...], number_filters: int, filter_shape: tuple[int, ...], stride: tuple[int, ...] = (2, ), \
+                 l1_regularization: float = 0., l2_regularization: float = 0., dropout_rate: float = 0.):
 
         # Create all variables needed to store the information about this layer
         # and where it is in the neural network.
@@ -357,6 +380,10 @@ class ConvolutionND():
         self.previous: Layer | MinimalLayer
         self.next: Layer | MinimalLayer
 
+        self.l1_regularization: float = l1_regularization
+        self.l2_regularization: float = l2_regularization
+        self.rate: float = 1 - dropout_rate
+
         # Create and initialize all variables for the weights and biases
         # this is a fully connected layer after all.Your location
         self.weights: npt.NDArray[np.float64] = np.random.rand(self.number_filters, *self.filter_shape).astype(np.float64) - .5
@@ -369,6 +396,7 @@ class ConvolutionND():
         self.momentum_biases: npt.NDArray[np.float64] = np.zeros_like(self.biases, dtype = np.float64)
         
     def squeeze_to_filter(self, input_data: npt.NDArray[np.float64]):
+
         self.reshaped_input = np.zeros(shape = (input_data.shape[0], *self.filter_shape))
 
         for filter_step in product(*(range(filter_steps) for filter_steps in self.filter_steps)):
@@ -379,7 +407,12 @@ class ConvolutionND():
 
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
 
-        self.input = input_data
+        if self.rate > 0. and training:
+            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
+        else:
+            self.binary_mask = np.ones_like(self.input_shape)
+
+        self.input = input_data * self.binary_mask
         self.squeeze_to_filter(self.input)
         self.output = np.zeros(shape = (self.reshaped_input.shape[0], *self.output_shape))
 
@@ -403,3 +436,15 @@ class ConvolutionND():
             datum = self.dinput[:, *s1]
             s2 = [slice(0, shape) for shape in datum.shape[1:]]
             self.dinput[:, *s1] += np.tensordot(grad_output[:, :, *filter_step], self.weights[:, *s2], axes = 1)
+
+        self.dinput *= self.binary_mask
+
+        if self.l1_regularization > 0.:
+            dl1weights = np.where(self.weights < 0, -1, 1)
+            dl1biases = np.where(self.biases < 0, -1, 1)
+            self.dweights += self.l1_regularization * dl1weights
+            self.dbiases += self.l1_regularization * dl1biases
+
+        if self.l2_regularization > 0.:
+            self.dweights += 2 * self.weights * self.l2_regularization
+            self.dbiases += 2 * self.biases * self.l2_regularization
