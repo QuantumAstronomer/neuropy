@@ -313,7 +313,7 @@ class AMS(Optimizer):
     converging quick enough towards the optimal solution as at some point the learning rate becomes so small that
     steps are basically staying in the same place.
 
-    To remedy this the Adaptive Mean Squared Gradient (AMS Gradient) optimizer was proposed by Reddi et al. at the
+    To remedy this the Adaptive Moment Squared Gradient (AMS Gradient) optimizer was proposed by Reddi et al. at the
     ICLR 2018 (url: https://arxiv.org/abs/1904.09237) which realized that the exponential moving average of the
     past squared gradients is the cause for the poor convergence. The authors noted that some minibatches in batch
     training provide a lot of information on how to converge by generating large gradients. However, since these

@@ -159,7 +159,7 @@ class FullyConnected(TrainableLayer):
         if self.rate > 0. and training:
             self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
         else:
-            self.binary_mask = np.ones_like(self.input_shape)
+            self.binary_mask = 1
 
         # Remember the input values and disable some of them using the dropout
         self.input = input_data.reshape(input_data.shape[0], input_data.shape[-1]) * self.binary_mask
@@ -234,7 +234,7 @@ class Flatten1D(Layer):
     A Flattening layer is useful in conjucntion with convolution layers: the output
     of a convolution layer is often multi dimensional, e.g. a convolution layer that
     takes in a 1 dimensional array will produce an output in 2 dimensions: one dimension
-    is the the length of the filter while the other is the number of filters.
+    is the the number of filtersteps while the other is the number of filters.
 
     Flattening brings this output back into a singular dimension by simply flattening
     the result. Since it is only a pass through layer with no learnable parameters its
