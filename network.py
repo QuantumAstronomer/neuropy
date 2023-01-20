@@ -54,24 +54,35 @@ class Network():
                 self.trainable_layers.append(layer)
 
 
-    def train(self, x_train: npt.NDArray[np.float64], y_train: npt.NDArray[np.float64], *, epochs: int = 1000, log_epochs: int = 100,
-              batch_size: Optional[int] = None):
+    def train(self, x_input: npt.NDArray[np.float64], y_input: npt.NDArray[np.float64], *, epochs: int = 1000, log_epochs: int = 100,
+              batch_size: Optional[int] = None, validation_size: float = 0., randomize: bool = True):
 
-        steps_per_epoch = len(x_train)
+        N_train = int(round((1 - validation_size) * len(x_input)))
+        N_validation = len(x_input) - N_train
+        steps_per_epoch = N_train
 
         if batch_size is not None:
-            steps_per_epoch = len(x_train) // batch_size
+            steps_per_epoch = N_train // batch_size
 
-            if steps_per_epoch * batch_size < len(x_train):
+            if steps_per_epoch * batch_size < N_train:
                 steps_per_epoch += 1
 
+        x_train, x_validation, y_train, y_validation = x_input[:N_train], x_input[N_train:], y_input[:N_train], y_input[N_train:]
+
         for epoch in range(1, epochs):
+            
+
+            if randomize:
+                shuffle = np.random.permutation(N_train)
+                x_train = x_train[shuffle]
+                y_train = y_train[shuffle]
 
             total_loss = 0.
 
             for step in range(steps_per_epoch):
 
                 if batch_size is not None:
+                    
                     x_batch = x_train[step * batch_size: (step + 1) * batch_size]
                     y_batch = y_train[step * batch_size: (step + 1) * batch_size]
                 else:
@@ -84,10 +95,19 @@ class Network():
 
                 for layer in self.trainable_layers:
                     self.optimizer.update_parameters(layer)
-                self.optimizer.post_update()
+            self.optimizer.post_update()
+
+            validation_loss = 0.
+
+            if validation_size:
+                y_validation_prediction = self.forward(x_validation, training_status = False)
+                validation_loss = self.lossfunction.forward(y_validation, y_validation_prediction)
 
             if (epoch + 1) % log_epochs == 0 or epoch == epochs - 1 or epoch == 0:
-                print(f'epoch: {epoch + 1}/{epochs}, total loss: {total_loss:.5f}', end = '\r')
+                if validation_size:
+                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss / N_train:.5f}, validation loss: {validation_loss / N_validation:.5f}', end = '\r')
+                else:
+                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss / N_train:.5f}', end = '\r')
 
 
     def forward(self, x_data: npt.NDArray[np.float64], training_status: bool = True) -> npt.NDArray[np.float64]:
