@@ -157,7 +157,7 @@ class FullyConnected(TrainableLayer):
         '''
 
         if self.rate > 0. and training:
-            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
+            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape)
         else:
             self.binary_mask = 1
 
@@ -324,7 +324,7 @@ class Convolution1D(TrainableLayer):
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
 
         if self.rate > 0. and training:
-            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
+            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape)
         else:
             self.binary_mask = np.ones_like(self.input_shape)
 
@@ -422,7 +422,7 @@ class ConvolutionND(TrainableLayer):
     def forward(self, input_data: npt.NDArray[np.float64], training: bool = True):
 
         if self.rate > 0. and training:
-            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape) / self.rate
+            self.binary_mask = np.random.binomial(1, self.rate, size = self.input_shape)
         else:
             self.binary_mask = np.ones_like(self.input_shape)
 
