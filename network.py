@@ -105,9 +105,9 @@ class Network():
 
             if (epoch + 1) % log_epochs == 0 or epoch == epochs - 1 or epoch == 0:
                 if validation_size:
-                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss / N_train:.5f}, validation loss: {validation_loss / N_validation:.5f}', end = '\r')
+                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss:.5f}, validation loss: {validation_loss:.5f}', end = '\r')
                 else:
-                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss / N_train:.5f}', end = '\r')
+                    print(f'epoch: {epoch + 1}/{epochs}, training loss: {total_loss:.5f}', end = '\r')
 
 
     def forward(self, x_data: npt.NDArray[np.float64], training_status: bool = True) -> npt.NDArray[np.float64]:
